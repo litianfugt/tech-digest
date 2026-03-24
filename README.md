@@ -35,11 +35,11 @@ npm install nodemailer
 
 ### 3. 配置
 
-**修改 `sources.yaml`**（必填）：
+**修改 `sources.yaml`**（可选，默认输出到 Skill 目录）：
 ```yaml
 output:
   max_articles_per_source: 10
-  output_dir: "C:/你的路径/tech-digest-output"   # 改为你的路径
+  output_dir: ""   # 留空则默认输出到 digests/ 子目录
 ```
 
 **修改 `scripts/send_report.js`** 中的 CONFIG（必填）：
@@ -82,6 +82,7 @@ node scripts/send_report.js --to your@email.com
 
 ```
 tech-digest/
+├── README.md                 # 项目说明
 ├── SKILL.md                  # QClaw Skill 说明
 ├── sources.yaml              # 信息源配置
 ├── requirements.txt          # Python 依赖
@@ -89,8 +90,12 @@ tech-digest/
 │   ├── tech_digest.py       # 采集脚本
 │   ├── send_report.js       # 邮件发送
 │   └── run.bat              # Windows 一键运行
-└── references/
-    └── REPORT_PROMPT.md     # 报告生成模板
+├── references/
+│   └── REPORT_PROMPT.md     # 报告生成模板
+└── digests/                  # 输出目录（自动生成）
+    ├── sources/             # 原始数据
+    ├── reports/             # 整理报告
+    └── log/                 # 错误日志
 ```
 
 ---
