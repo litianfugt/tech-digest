@@ -11,9 +11,9 @@
 
 - **24 个精选信息源**：量子位、新智元、爱范儿、ArXiv（5 个分类）、DeepMind、OpenAI、HuggingFace、MIT TR、TechCrunch 等
 - **自动采集**：RSS + ArXiv API + HTML 爬取，支持代理
-- **AI 生成报告**：由大模型直接整理生成结构化日报，无需额外 API Key
-- **邮件推送**：支持 SMTP，可配置任意邮箱发送
-- **完全可控**：信息源、输出路径均可配置
+- **AI 生成报告**：由大模型按照 REPORT_PROMPT.md 模板整理生成结构化日报
+- **邮件推送**：正文包含 TOP 10 简报，附件包含完整报告
+- **完全可控**：信息源、输出路径、邮件配置均可配置
 
 ---
 
@@ -35,28 +35,12 @@ npm install nodemailer
 
 ### 3. 配置
 
-**修改 `sources.yaml`**（可选，默认输出到 Skill 目录）：
-```yaml
-output:
-  max_articles_per_source: 10
-  output_dir: ""   # 留空则默认输出到 digests/ 子目录
-```
+**配置信息源**（可选）：编辑 `sources.yaml`
 
-### 3. 配置邮件（可选）
-
-**复制邮件配置模板**：
+**配置邮件**（可选）：
 ```bash
 cp .env.example .env
-```
-
-**编辑 `.env`，填入你的邮箱凭据**：
-```
-SMTP_HOST=smtp.163.com
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=your@163.com
-SMTP_PASS=your_smtp_auth_code
-DEFAULT_TO=your@email.com
+# 编辑 .env，填入你的邮箱凭据
 ```
 
 **获取 SMTP 授权码**：
@@ -70,12 +54,36 @@ DEFAULT_TO=your@email.com
 # 采集数据
 python scripts/tech_digest.py --source-only
 
-# 发送邮件（使用 .env 中的配置）
-node scripts/send_report.js
-
-# 或指定收件人
-node scripts/send_report.js --to recipient@email.com
+# 发送邮件
+node scripts/send_report.js --date 2026-03-23
 ```
+
+---
+
+## 工作流
+
+```
+用户触发
+  → Python 采集（24源 → 原始 Markdown）
+  → AI 阅读原始数据 source_YYYY-MM-DD.md
+  → AI 按照 references/REPORT_PROMPT.md 生成结构化日报
+  → 写入 digests/reports/report_YYYY-MM-DD.md
+  → 发送邮件（正文 TOP 10 + 附件完整报告）
+```
+
+---
+
+## 报告生成规范
+
+严格按照 `references/REPORT_PROMPT.md` 模板生成：
+
+- **今日要览**：约 200-400 字的高层次总结
+- **编号引用**：每条重要新闻后用 [编号] 引用信息源
+- **学术论文**：附上关键技术细节（模型名、参数量、方法亮点）
+- **不使用 emoji**
+- **Reference 表格**：每个实际使用的信息源只出现一次
+
+邮件正文包含 TOP 10 简报，附件包含完整报告。
 
 ---
 
@@ -103,11 +111,11 @@ tech-digest/
 ├── requirements.txt          # Python 依赖
 ├── scripts/
 │   ├── tech_digest.py       # 采集脚本
-│   ├── send_report.js       # 邮件发送
+│   ├── send_report.js       # 邮件发送（TOP10 + 附件）
 │   └── run.bat              # Windows 一键运行
 ├── references/
 │   └── REPORT_PROMPT.md     # 报告生成模板
-└── digests/                  # 输出目录（自动生成）
+└── digests/                 # 输出目录（自动生成）
     ├── sources/             # 原始数据
     ├── reports/             # 整理报告
     └── log/                 # 错误日志
@@ -115,28 +123,19 @@ tech-digest/
 
 ---
 
-## 工作流
-
-```
-用户触发
-  → Python 采集（24源 → 原始 Markdown）
-  → AI 阅读原始数据
-  → AI 生成结构化日报
-  → 发送邮件（TOP10 简报 + 完整报告附件）
-```
-
----
-
 ## 报告示例
 
 生成的日报包含：
-- 今日要览（高层总结）
-- AI Agent 与产品动态
-- 国内 AI 动态
-- AI 安全与伦理
-- 学术论文精选（含技术细节）
-- 国际科技要闻
-- Reference 引用表格
+
+- **今日要览**：约 200-400 字总结
+- **AI Agent 与产品动态**
+- **国内 AI 动态**
+- **AI 安全与伦理**
+- **学术论文精选**（含技术细节）
+- **国际科技要闻**
+- **Reference 引用表格**
+
+邮件正文为 TOP 10 简报，附件为完整报告。
 
 ---
 

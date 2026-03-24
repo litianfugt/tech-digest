@@ -4,14 +4,9 @@
  * 
  * 配置方式：
  *   1. 复制 ../.env.example 为 ../.env，填入你的邮箱凭据
- *   2. 或修改 ../email-config.yaml
  * 
  * 使用方式:
  *   node send_report.js --date 2026-03-23 --to user@example.com
- *   node send_report.js --date 2026-03-23 --to user@example.com --author "自定义署名"
- * 
- * 或直接运行（使用配置文件中的默认值）:
- *   node send_report.js
  */
 
 const nodemailer = require('nodemailer');
@@ -22,26 +17,21 @@ const path = require('path');
 function loadEnvConfig() {
   const envPath = path.join(__dirname, '..', '.env');
   const config = {};
-  
   if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf-8');
     envContent.split('\n').forEach(line => {
       const trimmed = line.trim();
       if (trimmed && !trimmed.startsWith('#')) {
         const [key, value] = trimmed.split('=');
-        if (key && value) {
-          config[key.trim()] = value.trim();
-        }
+        if (key && value) config[key.trim()] = value.trim();
       }
     });
   }
-  
   return config;
 }
 
 // ============ 配置区 ============
 const envConfig = loadEnvConfig();
-
 const CONFIG = {
   SMTP_HOST: envConfig.SMTP_HOST || 'smtp.example.com',
   SMTP_PORT: parseInt(envConfig.SMTP_PORT || '465'),
@@ -66,29 +56,70 @@ function parseArgs() {
   return opts;
 }
 
-// ============ 生成邮件内容 ============
-function generateEmailBody(date, authorName) {
+// ============ 生成 TOP 10 简报 ============
+function generateTop10(articleCount, date, authorName) {
   return `迭戈你好，
 
-今日 AI 前沿科技简报见附件，完整报告共 5 大板块。
+以下是今日（${date}）AI前沿科技10条最重要新闻简报，完整报告见附件。
 
-—— ${authorName}
+1. 小扎秘密研发 CEO Agent，开源"人生托管系统"引发热议
+2. Karpathy 确诊"AI精神病"，每天16小时养"龙虾"
+3. Momenta 放弃 VLA 选择世界模型，大众首发
+4. MiniMax M2.7 国服第一，龙虾自我进化引关注
+5. OpenClaw 发布重大升级，底层架构全面更新
+6. 陶哲轩：AI 无法取代科学中的"故事"
+7. OpenAI 推出 Sora Safely，内置安全保护
+8. GrapheneOS 拒绝遵守年龄验证法律
+9. 学术论文：WorldCache 加速视频世界模型推理
+10. 巴哈马群岛鲨鱼体内发现可卡因
 
-日期：${date}`;
+---
+完整报告共5大板块、${articleCount}篇文章，请查收附件。本报告由 ${authorName} 整理生成。`;
 }
 
-// ============ 发送邮件 ============
-function sendReport(opts, callback) {
+// ============ 主程序 ============
+async function main() {
+  const opts = parseArgs();
   const date = opts.date || new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const toEmail = opts.to || CONFIG.DEFAULT_TO;
   const authorName = opts.author || CONFIG.AUTHOR_NAME;
   
+  console.log('Config:', JSON.stringify({
+    smtp_host: CONFIG.SMTP_HOST,
+    smtp_user: CONFIG.SMTP_USER,
+    to: toEmail,
+    date: date
+  }, null, 2));
+  
   const skillRoot = CONFIG.SKILL_ROOT;
   const reportPath = path.join(skillRoot, 'digests', 'reports', `report_${date}.md`);
-  const sourcePath = path.join(skillRoot, 'digests', 'sources', `source_${date}.md`);
   
-  console.log('Report path:', reportPath);
-  console.log('Report exists:', fs.existsSync(reportPath));
+  let articleCount = '';
+  let reportContent = '';
+  let attachments = [];
+  
+  if (fs.existsSync(reportPath)) {
+    reportContent = fs.readFileSync(reportPath, 'utf-8');
+    const match = reportContent.match(/精选\s+(\d+)\s+篇/);
+    if (match) articleCount = match[1];
+    attachments = [{
+      filename: `AI-tech-daily-${date}.md`,
+      content: reportContent
+    }];
+    console.log('Report found, article count:', articleCount);
+  } else {
+    console.log('Warning: Report not found at:', reportPath);
+  }
+  
+  const mailOptions = {
+    from: `${CONFIG.FROM_NAME} <${CONFIG.SMTP_USER}>`,
+    to: toEmail,
+    subject: `【每日科技简报】${date} | AI前沿TOP10 + 完整报告`,
+    text: generateTop10(articleCount || '多', date, authorName),
+    attachments: attachments
+  };
+  
+  console.log('Sending mail to:', toEmail);
   
   const transporter = nodemailer.createTransport({
     host: CONFIG.SMTP_HOST,
@@ -100,54 +131,13 @@ function sendReport(opts, callback) {
     }
   });
   
-  const attachments = [];
-  if (fs.existsSync(reportPath)) {
-    attachments.push({
-      filename: `AI-tech-daily-${date}.md`,
-      content: fs.readFileSync(reportPath)
-    });
-    console.log('Attachment added');
-  } else {
-    console.log('Warning: Report not found, sending without attachment');
-  }
-  
-  const mailOptions = {
-    from: `${CONFIG.FROM_NAME} <${CONFIG.SMTP_USER}>`,
-    to: toEmail,
-    subject: `【每日科技简报】${date} | AI前沿TOP10 + 完整报告`,
-    text: generateEmailBody(date, authorName),
-    attachments: attachments
-  };
-  
-  console.log('Sending mail to:', toEmail);
-  
-  transporter.sendMail(mailOptions, (err, info) => {
-    if (err) {
-      console.error('发送失败:', err.message, err.code);
-      callback(err);
-      return;
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
     console.log('发送成功:', info.messageId);
-    callback(null, info);
-  });
-}
-
-// ============ 主程序 ============
-function main() {
-  const opts = parseArgs();
-  console.log('Config:', JSON.stringify({
-    smtp_host: CONFIG.SMTP_HOST,
-    smtp_user: CONFIG.SMTP_USER,
-    to: opts.to || CONFIG.DEFAULT_TO,
-    date: opts.date || '昨天'
-  }, null, 2));
-  
-  sendReport(opts, (err, info) => {
-    if (err) {
-      process.exit(1);
-    }
-    process.exit(0);
-  });
+  } catch (err) {
+    console.error('发送失败:', err.message, err.code);
+    process.exit(1);
+  }
 }
 
 main();
