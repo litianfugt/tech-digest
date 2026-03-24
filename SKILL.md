@@ -71,9 +71,19 @@ python scripts/tech_digest.py --source-only
 
 #### Step 2 — AI 生成报告
 
+**必须严格按照 `references/REPORT_PROMPT.md` 模板生成报告！**
+
 1. 读取 `digests/sources/source_YYYY-MM-DD.md`
-2. 按 `references/REPORT_PROMPT.md` 中的结构生成日报
+2. **严格遵循** `references/REPORT_PROMPT.md` 中的报告结构和内容规范
 3. 写入 `digests/reports/report_YYYY-MM-DD.md`
+
+**关键要求**：
+- 约 200-400 字的今日要览
+- 学术论文要附上关键技术细节（模型名、参数量、方法亮点）
+- 每条重要新闻后用编号引用信息源
+- 不使用 emoji
+- Reference 表格中每个信息源只出现一次
+- 内容要有深度，分析趋势和关联
 
 #### Step 3 — 发送邮件
 
