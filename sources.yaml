@@ -1,0 +1,159 @@
+# Tech Digest - 信息源配置
+# network: direct = 国内直连 | proxy = 走 Clash 代理(127.0.0.1:7897)
+# type: rss = RSS 抓取 | arxiv = ArXiv API | html = 网页爬取
+
+output:
+  max_articles_per_source: 10
+  # 输出目录（留空则输出到当前目录，Program Files 安装时需指定用户可写路径）
+  # 示例: output_dir: "C:/Users/你的用户名/Documents/tech_digest_output"
+  output_dir: ""
+
+sources:
+  # 国内 AI 垂直媒体（直连）
+  - name: "量子位"
+    rss_url: "https://www.qbitai.com/feed"
+    type: "rss"
+    category: "AI 垂直媒体"
+    network: "direct"
+
+  - name: "新智元"
+    url: "https://aiera.com.cn/"
+    type: "html"
+    category: "AI 垂直媒体"
+    network: "direct"
+
+  - name: "雷锋网"
+    rss_url: "https://www.leiphone.com/feed"
+    type: "rss"
+    category: "AI 垂直媒体"
+    network: "direct"
+
+  # 前沿科技媒体（直连）
+  - name: "爱范儿"
+    rss_url: "https://www.ifanr.com/feed"
+    type: "rss"
+    category: "前沿科技"
+    network: "direct"
+
+  - name: "Solidot"
+    rss_url: "https://www.solidot.org/index.rss"
+    type: "rss"
+    category: "前沿科技"
+    network: "direct"
+
+  - name: "少数派"
+    rss_url: "https://sspai.com/feed"
+    type: "rss"
+    category: "前沿科技"
+    network: "direct"
+
+  # AI 研究机构（代理）
+  - name: "Google DeepMind"
+    rss_url: "https://deepmind.google/blog/rss.xml"
+    type: "rss"
+    category: "AI 研究"
+    network: "proxy"
+
+  - name: "OpenAI"
+    rss_url: "https://openai.com/blog/rss.xml"
+    type: "rss"
+    category: "AI 研究"
+    network: "proxy"
+
+  - name: "Hugging Face"
+    rss_url: "https://huggingface.co/blog/feed.xml"
+    type: "rss"
+    category: "AI 研究"
+    network: "proxy"
+
+  - name: "Microsoft Research"
+    rss_url: "https://www.microsoft.com/en-us/research/feed/"
+    type: "rss"
+    category: "AI 研究"
+    network: "proxy"
+
+  - name: "NVIDIA AI"
+    rss_url: "https://blogs.nvidia.com/feed"
+    type: "rss"
+    category: "AI 研究"
+    network: "proxy"
+
+  - name: "AI Now Institute"
+    rss_url: "https://www.ainowinstitute.org/feed"
+    type: "rss"
+    category: "AI 研究"
+    network: "proxy"
+
+  # 学术论文 - ArXiv（代理）
+  - name: "ArXiv AI"
+    type: "arxiv"
+    arxiv_category: "cs.AI"
+    category: "学术论文"
+    network: "proxy"
+
+  - name: "ArXiv ML"
+    type: "arxiv"
+    arxiv_category: "cs.LG"
+    category: "学术论文"
+    network: "proxy"
+
+  - name: "ArXiv CV"
+    type: "arxiv"
+    arxiv_category: "cs.CV"
+    category: "学术论文"
+    network: "proxy"
+
+  - name: "ArXiv CL"
+    type: "arxiv"
+    arxiv_category: "cs.CL"
+    category: "学术论文"
+    network: "proxy"
+
+  - name: "ArXiv Robotics"
+    type: "arxiv"
+    arxiv_category: "cs.RO"
+    category: "学术论文"
+    network: "proxy"
+
+  # 国际科技媒体（代理）
+  - name: "MIT Technology Review"
+    rss_url: "https://www.technologyreview.com/feed"
+    type: "rss"
+    category: "国际科技"
+    network: "proxy"
+
+  - name: "VentureBeat AI"
+    rss_url: "https://venturebeat.com/category/ai/feed/"
+    type: "rss"
+    category: "国际科技"
+    network: "proxy"
+
+  - name: "Wired"
+    rss_url: "https://www.wired.com/feed/rss"
+    type: "rss"
+    category: "国际科技"
+    network: "proxy"
+
+  - name: "TechCrunch"
+    rss_url: "https://techcrunch.com/feed/"
+    type: "rss"
+    category: "国际科技"
+    network: "proxy"
+
+  - name: "The Verge"
+    rss_url: "https://www.theverge.com/rss/index.xml"
+    type: "rss"
+    category: "国际科技"
+    network: "proxy"
+
+  - name: "Hacker News"
+    rss_url: "https://news.ycombinator.com/rss"
+    type: "rss"
+    category: "国际科技"
+    network: "proxy"
+
+  - name: "IEEE Spectrum"
+    rss_url: "https://spectrum.ieee.org/feeds/feed.rss"
+    type: "rss"
+    category: "国际科技"
+    network: "proxy"
