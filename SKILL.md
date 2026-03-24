@@ -61,9 +61,9 @@ tech-digest/
 # 方式1：命令行指定输出目录
 python scripts/tech_digest.py --source-only --output-dir "C:\你的路径\output"
 
-# 方式2：修改 sources.yaml 中的 output.output_dir（分发后推荐）
+# 方式2：修改 sources.yaml 中的 output.output_dir
 
-# 不指定则输出到当前目录
+# 不指定则默认输出到 Skill 目录下的 digests/ 子目录
 python scripts/tech_digest.py --source-only
 ```
 
@@ -100,7 +100,7 @@ output:
 **优先级**（从高到低）：
 1. 命令行 `--output-dir` 参数
 2. `sources.yaml` 中的 `output_dir`
-3. 当前目录（`.`）
+3. **默认**：Skill 安装目录下的 `digests/` 子目录（推荐）
 
 ### 信息源（sources.yaml）
 

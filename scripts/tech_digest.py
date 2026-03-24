@@ -42,14 +42,16 @@ class TechDigest:
         self.sources = self.config.get('sources', [])
         self.output_config = self.config.get('output', {})
         self.debug_log = []
-        # 优先级：命令行参数 > sources.yaml output_dir > 当前目录
+        # 优先级：命令行参数 > sources.yaml output_dir > 脚本所在目录下的 digests/
         yaml_output_dir = self.output_config.get('output_dir', '').strip()
         if output_dir:
             self.output_dir = Path(output_dir)
         elif yaml_output_dir:
             self.output_dir = Path(yaml_output_dir)
         else:
-            self.output_dir = Path('.')
+            # 默认输出到脚本所在目录的 digests/ 子目录
+            script_dir = Path(__file__).parent.parent
+            self.output_dir = script_dir
         if date_range:
             self.date_start, self.date_end = date_range
         else:
