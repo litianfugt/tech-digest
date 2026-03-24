@@ -2,11 +2,15 @@
 /**
  * send_report.js - AI 前沿科技日报邮件发送脚本
  * 
+ * 配置方式：
+ *   1. 复制 ../.env.example 为 ../.env，填入你的邮箱凭据
+ *   2. 或修改 ../email-config.yaml
+ * 
  * 使用方式:
  *   node send_report.js --date 2026-03-23 --to user@example.com
  *   node send_report.js --date 2026-03-23 --to user@example.com --author "自定义署名"
  * 
- * 或修改下方 CONFIG 对象后直接运行:
+ * 或直接运行（使用配置文件中的默认值）:
  *   node send_report.js
  */
 
@@ -14,23 +18,46 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 
-// ============ 配置区（修改这里） ============
+// ============ 从 .env 文件加载配置 ============
+function loadEnvConfig() {
+  const envPath = path.join(__dirname, '..', '.env');
+  const config = {};
+  
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, value] = trimmed.split('=');
+        if (key && value) {
+          config[key.trim()] = value.trim();
+        }
+      }
+    });
+  }
+  
+  return config;
+}
+
+// ============ 配置区 ============
+const envConfig = loadEnvConfig();
+
 const CONFIG = {
-  // SMTP 服务器配置
-  SMTP_HOST: 'smtp.example.com',      // 如 smtp.163.com, smtp.gmail.com
-  SMTP_PORT: 465,
-  SMTP_SECURE: true,                  // 465 用 true，587 用 false
-  SMTP_USER: 'your@email.com',         // 发送邮箱地址
-  SMTP_PASS: 'your_smtp_auth_code',   // SMTP 授权码（不是登录密码！）
+  // SMTP 服务器配置（从 .env 读取，或使用默认值）
+  SMTP_HOST: envConfig.SMTP_HOST || 'smtp.example.com',
+  SMTP_PORT: parseInt(envConfig.SMTP_PORT || '465'),
+  SMTP_SECURE: envConfig.SMTP_SECURE !== 'false',
+  SMTP_USER: envConfig.SMTP_USER || 'your@email.com',
+  SMTP_PASS: envConfig.SMTP_PASS || 'your_smtp_auth_code',
 
   // 发件人
-  FROM_NAME: '克洛 AI 助理',
+  FROM_NAME: envConfig.FROM_NAME || '克洛 AI 助理',
 
   // 默认收件人（命令行 --to 可覆盖）
-  DEFAULT_TO: 'your@email.com',
+  DEFAULT_TO: envConfig.DEFAULT_TO || 'your@email.com',
 
   // 报告整理者署名（邮件正文底部）
-  AUTHOR_NAME: '克洛 AI 助理',
+  AUTHOR_NAME: envConfig.AUTHOR_NAME || '克洛 AI 助理',
 
   // Skill 根目录（send_report.js 所在目录的上级）
   SKILL_ROOT: path.join(__dirname, '..')
