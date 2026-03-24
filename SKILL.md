@@ -125,30 +125,31 @@ PROXY = {
 }
 ```
 
-### 邮件发送（send_report.js）
+### 邮件发送（.env 配置）
 
-在 `CONFIG` 对象中配置：
+**推荐方式**：复制 `.env.example` 为 `.env`，填入你的邮箱凭据：
 
-```javascript
-const CONFIG = {
-  // 发送者邮箱（SMTP 发件地址）
-  SMTP_HOST: 'smtp.example.com',      // 如 smtp.163.com
-  SMTP_PORT: 465,
-  SMTP_SECURE: true,
-  SMTP_USER: 'your@email.com',
-  SMTP_PASS: 'your_smtp_auth_code',  // 不是登录密码，是授权码
-  FROM_NAME: '克洛 AI 助理',
-  // 默认收件人（可命令行覆盖）
-  DEFAULT_TO: 'your@email.com',
-  // 邮件发送者签名
-  AUTHOR_NAME: '克洛 AI 助理'
-};
+```bash
+cp .env.example .env
 ```
 
-**获取邮箱授权码：**
+编辑 `.env`：
+```
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your@163.com
+SMTP_PASS=your_smtp_auth_code
+FROM_NAME=克洛 AI 助理
+DEFAULT_TO=your@email.com
+AUTHOR_NAME=克洛 AI 助理
+```
+
+**获取 SMTP 授权码**：
 - 163.com：设置 → POP3/SMTP/IMAP → 开启 SMTP → 生成授权码
 - Gmail：Google 账户 → 安全 → 应用密码
-- QQ/Outlook：类似流程
+- QQ：邮箱设置 → 账户 → 生成授权码
+- Outlook：账户设置 → 安全 → 应用密码
 
 ### 报告格式（references/REPORT_PROMPT.md）
 
