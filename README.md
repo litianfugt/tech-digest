@@ -42,26 +42,39 @@ output:
   output_dir: ""   # 留空则默认输出到 digests/ 子目录
 ```
 
-**修改 `scripts/send_report.js`** 中的 CONFIG（必填）：
-```javascript
-const CONFIG = {
-  SMTP_HOST: 'smtp.163.com',        // 或 smtp.gmail.com 等
-  SMTP_PORT: 465,
-  SMTP_SECURE: true,
-  SMTP_USER: 'your@email.com',       // 改为你的邮箱
-  SMTP_PASS: 'your_smtp_auth_code',  // 改为你的 SMTP 授权码
-  ...
-};
+### 3. 配置邮件（可选）
+
+**复制邮件配置模板**：
+```bash
+cp .env.example .env
 ```
+
+**编辑 `.env`，填入你的邮箱凭据**：
+```
+SMTP_HOST=smtp.163.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your@163.com
+SMTP_PASS=your_smtp_auth_code
+DEFAULT_TO=your@email.com
+```
+
+**获取 SMTP 授权码**：
+- 163.com：设置 → POP3/SMTP/IMAP → 开启 SMTP → 生成授权码
+- Gmail：Google 账户 → 安全 → 应用密码
+- QQ/Outlook：类似流程
 
 ### 4. 运行
 
 ```bash
-# 采集 + 生成报告
+# 采集数据
 python scripts/tech_digest.py --source-only
 
-# 发送邮件
-node scripts/send_report.js --to your@email.com
+# 发送邮件（使用 .env 中的配置）
+node scripts/send_report.js
+
+# 或指定收件人
+node scripts/send_report.js --to recipient@email.com
 ```
 
 ---
@@ -84,6 +97,8 @@ node scripts/send_report.js --to your@email.com
 tech-digest/
 ├── README.md                 # 项目说明
 ├── SKILL.md                  # QClaw Skill 说明
+├── .env.example              # 邮件配置模板
+├── email-config.yaml         # 邮件配置说明
 ├── sources.yaml              # 信息源配置
 ├── requirements.txt          # Python 依赖
 ├── scripts/
