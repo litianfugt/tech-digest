@@ -43,23 +43,14 @@ function loadEnvConfig() {
 const envConfig = loadEnvConfig();
 
 const CONFIG = {
-  // SMTP 服务器配置（从 .env 读取，或使用默认值）
   SMTP_HOST: envConfig.SMTP_HOST || 'smtp.example.com',
   SMTP_PORT: parseInt(envConfig.SMTP_PORT || '465'),
   SMTP_SECURE: envConfig.SMTP_SECURE !== 'false',
   SMTP_USER: envConfig.SMTP_USER || 'your@email.com',
   SMTP_PASS: envConfig.SMTP_PASS || 'your_smtp_auth_code',
-
-  // 发件人
   FROM_NAME: envConfig.FROM_NAME || '克洛 AI 助理',
-
-  // 默认收件人（命令行 --to 可覆盖）
   DEFAULT_TO: envConfig.DEFAULT_TO || 'your@email.com',
-
-  // 报告整理者署名（邮件正文底部）
   AUTHOR_NAME: envConfig.AUTHOR_NAME || '克洛 AI 助理',
-
-  // Skill 根目录（send_report.js 所在目录的上级）
   SKILL_ROOT: path.join(__dirname, '..')
 };
 
@@ -75,56 +66,30 @@ function parseArgs() {
   return opts;
 }
 
-// ============ TOP 10 生成 ============
-function generateTop10(sourceContent, dateLabel) {
-  // 此处由 AI 阅读 source 文件后填入
-  // 占位，实际运行时由 AI 替换
+// ============ 生成邮件内容 ============
+function generateEmailBody(date, authorName) {
   return `迭戈你好，
 
-以下是今日（${dateLabel}）AI前沿科技10条最重要新闻简报，完整报告见附件。
+今日 AI 前沿科技简报见附件，完整报告共 5 大板块。
 
-1. [AI 助手请在此填入第一条]
-2. [AI 助手请在此填入第二条]
-...
+—— ${authorName}
 
----
-完整报告共5大板块，请查收附件。本报告由 ${CONFIG.AUTHOR_NAME} 整理生成。`;
+日期：${date}`;
 }
 
 // ============ 发送邮件 ============
-async function sendReport(opts) {
+function sendReport(opts, callback) {
   const date = opts.date || new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const toEmail = opts.to || CONFIG.DEFAULT_TO;
   const authorName = opts.author || CONFIG.AUTHOR_NAME;
-
-  // 读取 source 文件供 AI 参考
-  const sourcePath = path.join(CONFIG.SKILL_ROOT, 'digests', 'sources', `source_${date}.md`);
-  const reportPath = path.join(CONFIG.SKILL_ROOT, 'digests', 'reports', `report_${date}.md`);
-
-  let top10 = '';
-  let sourceContent = '';
-
-  if (fs.existsSync(sourcePath)) {
-    sourceContent = fs.readFileSync(sourcePath, 'utf-8');
-  }
-
-  if (fs.existsSync(reportPath)) {
-    top10 = `[完整报告见附件：report_${date}.md]`;
-  } else if (sourceContent) {
-    // 如果没有完整报告，AI 阅读 source 后生成简报
-    // 提示：实际运行时由 AI 会话完成此处
-    top10 = `[请 AI 阅读 source_${date}.md 后填入 TOP 10]`;
-  } else {
-    console.error(`未找到 source 或 report 文件: ${date}`);
-    console.error(`请先运行: python scripts/tech_digest.py --date ${date}`);
-    process.exit(1);
-  }
-
-  const emailBody = `${authorName}
-${date}
-
-${top10}`;
-
+  
+  const skillRoot = CONFIG.SKILL_ROOT;
+  const reportPath = path.join(skillRoot, 'digests', 'reports', `report_${date}.md`);
+  const sourcePath = path.join(skillRoot, 'digests', 'sources', `source_${date}.md`);
+  
+  console.log('Report path:', reportPath);
+  console.log('Report exists:', fs.existsSync(reportPath));
+  
   const transporter = nodemailer.createTransport({
     host: CONFIG.SMTP_HOST,
     port: CONFIG.SMTP_PORT,
@@ -134,32 +99,41 @@ ${top10}`;
       pass: CONFIG.SMTP_PASS
     }
   });
-
-  await transporter.verify();
-  console.log('SMTP connected OK');
-
+  
   const attachments = [];
   if (fs.existsSync(reportPath)) {
     attachments.push({
       filename: `AI-tech-daily-${date}.md`,
       content: fs.readFileSync(reportPath)
     });
+    console.log('Attachment added');
+  } else {
+    console.log('Warning: Report not found, sending without attachment');
   }
-
-  const info = await transporter.sendMail({
+  
+  const mailOptions = {
     from: `${CONFIG.FROM_NAME} <${CONFIG.SMTP_USER}>`,
     to: toEmail,
     subject: `【每日科技简报】${date} | AI前沿TOP10 + 完整报告`,
-    text: emailBody,
-    attachments
+    text: generateEmailBody(date, authorName),
+    attachments: attachments
+  };
+  
+  console.log('Sending mail to:', toEmail);
+  
+  transporter.sendMail(mailOptions, (err, info) => {
+    if (err) {
+      console.error('发送失败:', err.message, err.code);
+      callback(err);
+      return;
+    }
+    console.log('发送成功:', info.messageId);
+    callback(null, info);
   });
-
-  console.log('发送成功:', info.messageId);
-  return info;
 }
 
 // ============ 主程序 ============
-async function main() {
+function main() {
   const opts = parseArgs();
   console.log('Config:', JSON.stringify({
     smtp_host: CONFIG.SMTP_HOST,
@@ -167,13 +141,13 @@ async function main() {
     to: opts.to || CONFIG.DEFAULT_TO,
     date: opts.date || '昨天'
   }, null, 2));
-
-  try {
-    await sendReport(opts);
-  } catch (e) {
-    console.error('发送失败:', e.message);
-    process.exit(1);
-  }
+  
+  sendReport(opts, (err, info) => {
+    if (err) {
+      process.exit(1);
+    }
+    process.exit(0);
+  });
 }
 
 main();
