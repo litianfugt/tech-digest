@@ -58,6 +58,7 @@ class TechDigest:
             self.date_start, self.date_end = self._get_yesterday_range()
 
     def _get_yesterday_range(self) -> Tuple[datetime, datetime]:
+        """获取昨天的日期范围（昨天0点到今天0点）"""
         now = datetime.now()
         today = now.replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday_start = today - timedelta(days=1)
@@ -95,6 +96,7 @@ class TechDigest:
             return None
 
     def _is_within_target_range(self, date_str: str) -> bool:
+        """检查日期是否在目标范围内"""
         dt = self._parse_date(date_str)
         if dt is None:
             return True
@@ -177,20 +179,26 @@ class TechDigest:
         return articles
 
     def _parse_aiera(self, html: str, name: str, source: Dict, max_n: int) -> List[Dict[str, str]]:
+        """解析新智元网站，从URL中提取日期并进行时间过滤"""
         articles = []
-        pattern = r'href="(https://aiera\.com\.cn/\d{4}/\d{2}/\d{2}/[^"]+)"[^>]*>([^<]{10,})'
+        # 从 URL 中提取日期：https://aiera.com.cn/2026/03/24/...
+        pattern = r'href="(https://aiera\.com\.cn/(\d{4}/\d{2}/\d{2})/[^"]+)"[^>]*>([^<]{10,})'
         matches = re.findall(pattern, html)
         seen = set()
-        for url, title in matches:
+        for url, date_str, title in matches:
             if url not in seen:
                 seen.add(url)
                 title = title.strip()
                 url_decoded = unquote(url)
+                # 将日期格式化为 YYYY-MM-DD 进行时间过滤
+                published = date_str.replace('/', '-')
+                if not self._is_within_target_range(published):
+                    continue
                 articles.append({
                     'title': title,
                     'url': url_decoded,
                     'summary': '',
-                    'published': '',
+                    'published': published,
                     'source': name,
                     'category': source.get('category', 'Other'),
                 })

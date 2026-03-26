@@ -38,9 +38,9 @@ const CONFIG = {
   SMTP_SECURE: envConfig.SMTP_SECURE !== 'false',
   SMTP_USER: envConfig.SMTP_USER || 'your@email.com',
   SMTP_PASS: envConfig.SMTP_PASS || 'your_smtp_auth_code',
-  FROM_NAME: envConfig.FROM_NAME || '克洛 AI 助理',
+  FROM_NAME: envConfig.FROM_NAME || 'AI Assistant',
   DEFAULT_TO: envConfig.DEFAULT_TO || 'your@email.com',
-  AUTHOR_NAME: envConfig.AUTHOR_NAME || '克洛 AI 助理',
+  AUTHOR_NAME: envConfig.AUTHOR_NAME || 'AI Assistant',
   SKILL_ROOT: path.join(__dirname, '..')
 };
 
@@ -56,25 +56,71 @@ function parseArgs() {
   return opts;
 }
 
+// ============ 从报告中提取 TOP 10 新闻 ============
+function extractTop10FromReport(reportContent) {
+  const top10 = [];
+  
+  // 方法1：尝试从 "今日要览" 部分提取关键信息
+  const overviewMatch = reportContent.match(/## 今日要览\n([\s\S]*?)(?=\n---|\n## )/);
+  if (overviewMatch) {
+    const overview = overviewMatch[1].trim();
+    // 提取句子作为候选
+    const sentences = overview.split(/[。！？\n]/).filter(s => s.trim().length > 10);
+    sentences.slice(0, 5).forEach(s => {
+      top10.push(s.trim());
+    });
+  }
+  
+  // 方法2：从各个板块提取带 [*] 引用的标题
+  const sectionMatches = reportContent.matchAll(/## (?!今日要览|Reference)([^\n]+)\n([\s\S]*?)(?=\n## |$)/g);
+  for (const match of sectionMatches) {
+    if (top10.length >= 10) break;
+    const sectionTitle = match[1].trim();
+    const sectionContent = match[2];
+    
+    // 提取加粗的标题（通常是新闻标题）
+    const boldTitles = sectionContent.matchAll(/\*\*([^*]+\*\*)/g);
+    for (const bt of boldTitles) {
+      if (top10.length >= 10) break;
+      const title = bt[1].replace(/\*\*/g, '').trim();
+      if (title.length > 5 && title.length < 100) {
+        top10.push(title);
+      }
+    }
+  }
+  
+  return top10.slice(0, 10);
+}
+
 // ============ 生成 TOP 10 简报 ============
-function generateTop10(articleCount, date, authorName) {
-  return `迭戈你好，
+function generateTop10(reportContent, date, authorName) {
+  const top10 = extractTop10FromReport(reportContent);
+  
+  // 提取文章数
+  const countMatch = reportContent.match(/精选\s+(\d+)\s+篇/);
+  const articleCount = countMatch ? countMatch[1] : '多';
+  
+  // 提取信息源数
+  const sourceMatch = reportContent.match(/(\d+)\s+个信息源/);
+  const sourceCount = sourceMatch ? sourceMatch[1] : '多';
+  
+  let top10Text = '';
+  if (top10.length > 0) {
+    top10.forEach((item, i) => {
+      top10Text += `${i + 1}. ${item}\n`;
+    });
+  } else {
+    top10Text = '(请查看完整报告获取详情)\n';
+  }
+  
+  return `你好，
 
-以下是今日（${date}）AI前沿科技10条最重要新闻简报，完整报告见附件。
+以下是 ${date} AI前沿科技重要新闻简报，完整报告见附件。
 
-1. 小扎秘密研发 CEO Agent，开源"人生托管系统"引发热议
-2. Karpathy 确诊"AI精神病"，每天16小时养"龙虾"
-3. Momenta 放弃 VLA 选择世界模型，大众首发
-4. MiniMax M2.7 国服第一，龙虾自我进化引关注
-5. OpenClaw 发布重大升级，底层架构全面更新
-6. 陶哲轩：AI 无法取代科学中的"故事"
-7. OpenAI 推出 Sora Safely，内置安全保护
-8. GrapheneOS 拒绝遵守年龄验证法律
-9. 学术论文：WorldCache 加速视频世界模型推理
-10. 巴哈马群岛鲨鱼体内发现可卡因
-
+${top10Text}
 ---
-完整报告共5大板块、${articleCount}篇文章，请查收附件。本报告由 ${authorName} 整理生成。`;
+完整报告共5大板块、${articleCount}篇文章、${sourceCount}个信息源，请查收附件。
+本报告由 ${authorName} 整理生成。`;
 }
 
 // ============ 主程序 ============
@@ -94,28 +140,27 @@ async function main() {
   const skillRoot = CONFIG.SKILL_ROOT;
   const reportPath = path.join(skillRoot, 'digests', 'reports', `report_${date}.md`);
   
-  let articleCount = '';
   let reportContent = '';
   let attachments = [];
   
   if (fs.existsSync(reportPath)) {
     reportContent = fs.readFileSync(reportPath, 'utf-8');
-    const match = reportContent.match(/精选\s+(\d+)\s+篇/);
-    if (match) articleCount = match[1];
     attachments = [{
       filename: `AI-tech-daily-${date}.md`,
       content: reportContent
     }];
-    console.log('Report found, article count:', articleCount);
+    console.log('Report found:', reportPath);
   } else {
     console.log('Warning: Report not found at:', reportPath);
+    console.log('Please generate the report first.');
+    process.exit(1);
   }
   
   const mailOptions = {
     from: `${CONFIG.FROM_NAME} <${CONFIG.SMTP_USER}>`,
     to: toEmail,
     subject: `【每日科技简报】${date} | AI前沿TOP10 + 完整报告`,
-    text: generateTop10(articleCount || '多', date, authorName),
+    text: generateTop10(reportContent, date, authorName),
     attachments: attachments
   };
   
